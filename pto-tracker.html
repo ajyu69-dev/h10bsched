@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PTO Tracker - Helium 10</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d2e;
+    --surface2: #222540;
+    --border: #2e3255;
+    --accent: #6c63ff;
+    --text: #e2e8f0;
+    --text-muted: #7f8ea3;
+    --success: #2ed573;
+    --warn: #ffa502;
+    --danger: #ff4757;
+    --on-duty: #2ed573;
+    --rest-day: #6c757d;
+    --approved-pto: #EFFF00;
+    --radius: 12px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.45);
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a1d2e 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+
+  .header-left { display: flex; align-items: center; gap: 14px; }
+
+  .logo {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--accent), #ff6584);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.3px; }
+  h1 span { color: var(--accent); }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface2);
+    padding: 8px 16px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+  }
+
+  .user-name { font-weight: 600; font-size: 0.9rem; }
+
+  .btn-back {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .btn-back:hover { background: var(--accent); border-color: var(--accent); }
+
+  main { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .card-title::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: var(--accent);
+    border-radius: 4px;
+  }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .month-display {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .nav-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-nav {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-nav:hover { background: var(--accent); border-color: var(--accent); }
+
+  .calendar-wrapper {
+    overflow-x: auto;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    min-width: 900px;
+  }
+
+  .calendar-header {
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding: 8px;
+    background: var(--surface2);
+    border-radius: 8px;
+  }
+
+  .calendar-day {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 120px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .calendar-day:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .calendar-day.other-month {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .day-number {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .staff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .staff-item {
+    font-size: 0.75rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .staff-item.on-duty {
+    background: var(--on-duty);
+    color: #000;
+  }
+
+  .staff-item.rest-day {
+    background: var(--rest-day);
+    color: #fff;
+  }
+
+  .staff-item.approved-pto {
+    background: var(--approved-pto);
+    color: #000;
+  }
+
+  .legend {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+
+  .legend-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-success {
+    background: var(--success);
+    color: #000;
+  }
+  .btn-success:hover { opacity: 0.9; }
+
+  .btn-danger {
+    background: var(--danger);
+    color: #fff;
+  }
+  .btn-danger:hover { opacity: 0.9; }
+
+  .btn-secondary {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-secondary:hover { background: var(--surface); }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .modal-body {
+    margin-bottom: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+  }
+
+  .form-input, .form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .notification-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .notif-user {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  .notif-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .notif-reason {
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-bottom: 12px;
+    color: var(--text-muted);
+  }
+
+  .notif-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 2000;
+    animation: slideIn 0.3s ease-out;
+    max-width: 400px;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .toast.success { background: var(--success); color: #000; }
+  .toast.error { background: var(--danger); color: #fff; }
+  .toast.info { background: var(--accent); color: #fff; }
+
+  /* Alarm Modal Styles */
+  .alarm-modal {
+    background: var(--surface);
+    border: 2px solid var(--warn);
+    border-radius: var(--radius);
+    padding: 32px;
+    max-width: 450px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    text-align: center;
+  }
+
+  .alarm-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    animation: ringing 0.5s ease-in-out infinite;
+  }
+
+  @keyframes ringing {
+    0%, 100% { transform: rotate(-15deg); }
+    50% { transform: rotate(15deg); }
+  }
+
+  .alarm-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--warn);
+  }
+
+  .alarm-message {
+    font-size: 1.1rem;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+
+  .btn-dismiss {
+    background: var(--warn);
+    color: #000;
+    padding: 12px 32px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-dismiss:hover { opacity: 0.9; transform: scale(1.05); }
+
+  /* User Notification Card */
+  .user-notification-card {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .notif-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .notif-icon {
+    font-size: 2rem;
+  }
+
+  .notif-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .notif-content {
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .notif-cta {
+    background: var(--success);
+    color: #000;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 700;
+    margin-top: 16px;
+  }
+
+  .notif-reason-label {
+    font-weight: 700;
+    color: var(--danger);
+    margin-bottom: 8px;
+  }
+
+  .notif-reason-text {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-style: italic;
+  }
+
+  .notif-dismiss {
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  .btn-notif-dismiss {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-notif-dismiss:hover { background: var(--accent); border-color: var(--accent); }
+
+  @media (max-width: 768px) {
+    header { padding: 14px 20px; }
+    main { padding: 20px 16px; }
+    .card { padding: 16px; }
+    .calendar-day { min-height: 100px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">📅</div>
+    <h1>PTO <span>Tracker</span></h1>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <div class="user-info">
+      <img id="current-user-avatar" class="user-avatar" src="" alt="User">
+      <span id="current-user-name" class="user-name"></span>
+    </div>
+    <a href="index.html" class="btn-back">← Back to Scheduler</a>
+  </div>
+</header>
+
+<main>
+  <!-- Admin Card (June Only) - MOVED TO TOP -->
+  <div class="card" id="admin-card" style="display: none;">
+    <div class="card-title">📋 Pending PTO Requests</div>
+    <div id="notifications-list"></div>
+  </div>
+
+  <!-- User Notifications Card -->
+  <div class="card" id="user-notifications-card" style="display: none;">
+    <div class="card-title">📬 Your Notifications</div>
+    <div id="user-notifications-list"></div>
+  </div>
+
+  <!-- Calendar Card -->
+  <div class="card">
+    <div class="card-title">📅 Team Schedule</div>
+    
+    <div class="month-nav">
+      <div class="month-display" id="month-display"></div>
+      <div class="nav-buttons">
+        <button class="btn-nav" onclick="previousMonth()">◀ Previous</button>
+        <button class="btn-nav" onclick="nextMonth()">Next ▶</button>
+      </div>
+    </div>
+
+    <div class="calendar-wrapper">
+      <div class="calendar-grid" id="calendar-grid"></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--on-duty);"></div>
+        <span>On Duty</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--rest-day);"></div>
+        <span>Rest Day</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--approved-pto);"></div>
+        <span>Approved PTO</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: transparent; font-size: 1.2rem;">⭐</div>
+        <span>Pending PTO Request</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Break Alarm Modal -->
+<div class="modal-overlay" id="alarm-modal">
+  <div class="alarm-modal">
+    <div class="alarm-icon">🔔</div>
+    <div class="alarm-title" id="alarm-title">Break Time!</div>
+    <div class="alarm-message" id="alarm-message"></div>
+    <button class="btn-dismiss" onclick="dismissAlarm()">Dismiss Alarm</button>
+  </div>
+</div>
+
+<!-- Password Modal -->
+<div class="modal-overlay" id="password-modal">
+  <div class="modal">
+    <div class="modal-title" id="password-modal-title">Enter Admin Password</div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="password-input" class="form-input">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closePasswordModal()">Cancel</button>
+      <button class="btn btn-success" onclick="submitPassword()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Decline Modal -->
+<div class="modal-overlay" id="decline-modal">
+  <div class="modal">
+    <div class="modal-title">Decline PTO Request</div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Reason for Decline (Required)</label>
+        <textarea id="decline-reason" class="form-textarea" placeholder="Enter reason for declining..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeDeclineModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDecline()">Decline Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Retraction Modal -->
+<div class="modal-overlay" id="retraction-modal">
+  <div class="modal">
+    <div class="modal-title">Retract Approved PTO</div>
+    <div class="modal-body">
+      <p id="retraction-message" style="margin-bottom: 16px;"></p>
+      <div class="form-group" id="retraction-password-group" style="display: none;">
+        <label class="form-label">Admin Password</label>
+        <input type="password" id="retraction-password" class="form-input">
+      </div>
+      <div class="form-group" id="retraction-reason-group" style="display: none;">
+        <label class="form-label">Reason for Retraction</label>
+        <textarea id="retraction-reason" class="form-textarea"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeRetractionModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmRetraction()">Retract PTO</button>
+    </div>
+  </div>
+</div>
+
+<!-- PTO Request Modal -->
+<div class="modal-overlay" id="request-pto-modal">
+  <div class="modal">
+    <div class="modal-title">Request PTO</div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="text" id="request-date" class="form-input" readonly disabled>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason (Required)</label>
+        <textarea id="request-reason" class="form-textarea" placeholder="Enter reason for PTO request..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeRequestModal()">Cancel</button>
+      <button class="btn btn-success" onclick="submitRequestFromModal()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Get current user from break scheduler
+const currentUser = localStorage.getItem('currentUser') || 'June';
+const USER_IMAGES = {
+  'June': 'images/june.jpg',
+  'Mary': 'images/mary.jpg',
+  'Angel': 'images/angel.jpg',
+  'Jay': 'images/jay.jpg',
+  'Charist': 'images/charist.jpg',
+  'Noel': 'images/noel.jpg',
+  'Drich': 'images/drich.jpg'
+};
+
+// Display current user
+document.getElementById('current-user-name').textContent = currentUser;
+document.getElementById('current-user-avatar').src = USER_IMAGES[currentUser] || '';
+
+// Current viewing month
+let currentMonth = new Date();
+currentMonth.setDate(1); // Set to the first day of the current month
+let selectedDate = null;
+let pendingAction = null;
+
+// Break alarm variables
+let alarmAudioContext = null;
+let alarmOscillator = null;
+let alarmGainNode = null;
+let alarmInterval = null;
+
+// Work schedule data
+const workSchedule = {
+  "June": {
+    "workDays": [2, 3, 4, 5, 6], // Tue-Sat
+    "exceptions": [
+      {"date": "2026-03-20", "type": "PTO"},
+      {"date": "2026-03-21", "type": "PTO"},
+      {"date": "2026-03-26", "type": "PTO"}
+    ]
+  },
+  "Mary": {
+    "workDays": [0, 1, 2, 5, 6], // Sun, Mon, Tue, Fri, Sat
+    "exceptions": [
+      {"date": "2026-03-23", "type": "PTO"}
+    ]
+  },
+  "Angel": {
+    "workDays": [0, 1, 2, 3, 4], // Sun-Thu
+    "exceptions": [
+      {"date": "2026-03-30", "type": "PTO"},
+      {"date": "2026-03-31", "type": "PTO"}
+    ]
+  },
+  "Jay": {
+    "workDays": [0, 1, 4, 5, 6], // Sun, Mon, Thu, Fri, Sat
+    "exceptions": []
+  },
+  "Charist": {
+    "workDays": [0, 3, 4, 5, 6], // Sun, Wed, Thu, Fri, Sat
+    "exceptions": [
+      {"date": "2026-03-08", "type": "Rest Day"}
+    ]
+  },
+  "Noel": {
+    "workDays": [0, 1, 2, 3, 4], // Sun-Thu
+    "exceptions": []
+  },
+  "Drich": {
+    "workDays": [0, 1, 2, 5, 6], // Sun, Mon, Tue, Fri, Sat
+    "exceptions": []
+  }
+};
+
+// PTO requests and approvals
+let ptoRequests = [];
+let approvedPTO = [];
+
+// RESET JUNE'S PASSWORD (remove this line after first load if you want to keep the password)
+
+let junePassword = localStorage.getItem('junePassword') || null;
+let userNotifications = JSON.parse(localStorage.getItem('userNotifications_' + currentUser) || '[]');
+
+// Fired alarms tracking
+let firedAlarms = new Set();
+let firedEndAlarms = new Set();
+
+/* ═══════════════════════════════════════════════════════════════════
+   DATABASE SYNC FUNCTIONS
+═══════════════════════════════════════════════════════════════════ */
+
+function openRequestModal(dateStr) {
+  document.getElementById('request-date').value = dateStr;
+  document.getElementById('request-reason').value = '';
+  document.getElementById('request-pto-modal').classList.add('open');
+}
+
+function closeRequestModal() {
+  document.getElementById('request-pto-modal').classList.remove('open');
+}
+
+async function submitRequestFromModal() {
+  const date = document.getElementById('request-date').value;
+  const reason = document.getElementById('request-reason').value.trim();
+
+  if (!reason) {
+    showToast('error', 'Reason is required');
+    return;
+  }
+
+  await submitPTORequest(date, reason);
+  closeRequestModal();
+}
+
+// Load PTO requests from database
+async function loadPTORequests() {
+  try {
+    const response = await fetch('tables/pto_requests?limit=1000&sort=-created_at');
+    if (!response.ok) throw new Error('Failed to load PTO requests');
+    const data = await response.json();
+    ptoRequests = data.data || [];
+    console.log('✅ Loaded PTO requests from database:', ptoRequests.length);
+    if (ptoRequests.length > 0) {
+      console.log('First request:', ptoRequests[0]);
+    }
+  } catch (error) {
+    console.error('❌ Error loading PTO requests:', error);
+    // Fallback to localStorage
+    ptoRequests = JSON.parse(localStorage.getItem('ptoRequests') || '[]');
+  }
+}
+
+// Load approved PTO from database
+async function loadApprovedPTO() {
+  try {
+    const response = await fetch('tables/approved_pto?limit=1000&sort=-approved_at');
+    if (!response.ok) throw new Error('Failed to load approved PTO');
+    const data = await response.json();
+    approvedPTO = data.data || [];
+    console.log('Loaded approved PTO from database:', approvedPTO.length);
+  } catch (error) {
+    console.error('Error loading approved PTO:', error);
+    // Fallback to localStorage
+    approvedPTO = JSON.parse(localStorage.getItem('approvedPTO') || '[]');
+  }
+}
+
+// Save PTO request to database
+async function savePTORequest(request) {
+  try {
+    console.log('💾 Saving PTO request to database:', request);
+    const response = await fetch('tables/pto_requests', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(request)
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Save failed. Status:', response.status, 'Error:', errorText);
+      throw new Error('Failed to save PTO request');
+    }
+    const saved = await response.json();
+    console.log('✅ PTO request saved to database. DB ID:', saved.id, 'Custom ID:', saved.id);
+    return saved;
+  } catch (error) {
+    console.error('❌ Error saving PTO request:', error);
+    // Fallback to localStorage
+    localStorage.setItem('ptoRequests', JSON.stringify(ptoRequests));
+    throw error;
+  }
+}
+
+// Update PTO request in database
+async function updatePTORequest(requestId, updates) {
+  try {
+    // Find the record by our custom id field
+    const record = ptoRequests.find(r => r.id === requestId);
+    if (!record) throw new Error('PTO request not found in local array');
+    
+    // The database uses its own 'id' field (UUID), but we need to find by our custom 'id'
+    // We need to get all records and find the matching one
+    const allRecords = await fetch('tables/pto_requests?limit=1000').then(r => r.json());
+    const dbRecord = allRecords.data.find(r => r.id === requestId);
+    
+    if (!dbRecord) {
+      console.error('Database record not found for request:', requestId);
+      return;
+    }
+    
+    // Update using the database's internal ID
+    const response = await fetch(`tables/pto_requests/${dbRecord.id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(updates)
+    });
+    if (!response.ok) throw new Error('Failed to update PTO request');
+    console.log('PTO request updated in database:', dbRecord.id);
+  } catch (error) {
+    console.error('Error updating PTO request:', error);
+    // Fallback to localStorage
+    localStorage.setItem('ptoRequests', JSON.stringify(ptoRequests));
+  }
+}
+
+// Save approved PTO to database
+async function saveApprovedPTO(pto) {
+  try {
+    const response = await fetch('tables/approved_pto', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(pto)
+    });
+    if (!response.ok) throw new Error('Failed to save approved PTO');
+    const saved = await response.json();
+    console.log('Approved PTO saved to database:', saved.id);
+    return saved;
+  } catch (error) {
+    console.error('Error saving approved PTO:', error);
+    // Fallback to localStorage
+    localStorage.setItem('approvedPTO', JSON.stringify(approvedPTO));
+    throw error;
+  }
+}
+
+// Delete approved PTO from database
+async function deleteApprovedPTO(date, user) {
+  try {
+    // Find the record
+    const record = approvedPTO.find(p => p.date === date && p.user === user);
+    if (!record) return;
+    
+    const dbId = record.id;
+    const response = await fetch(`tables/approved_pto/${dbId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) throw new Error('Failed to delete approved PTO');
+    console.log('Approved PTO deleted from database:', dbId);
+  } catch (error) {
+    console.error('Error deleting approved PTO:', error);
+    // Fallback to localStorage
+    localStorage.setItem('approvedPTO', JSON.stringify(approvedPTO));
+  }
+}
+
+// Initialize - load data and setup
+async function init() {
+  console.log('🚀 Initializing PTO Tracker. Current user:', currentUser);
+  
+  // Load data from database
+  await Promise.all([
+    loadPTORequests(),
+    loadApprovedPTO(),
+    loadBreaksForAlarms()
+  ]);
+  
+  renderCalendar();
+  renderUserNotifications();
+  
+  // Show admin card for June
+  if (currentUser === 'June') {
+    console.log('👑 User is June - showing admin card and calling renderNotifications');
+    const adminCard = document.getElementById('admin-card');
+    if (adminCard) {
+      adminCard.style.display = 'block';
+    }
+    renderNotifications();
+  } else {
+    console.log('👤 User is not June');
+  }
+  
+  // Start alarm checking for breaks
+  setInterval(checkBreakAlarms, 1000); // Check every second
+  
+  // Auto-refresh PTO data and breaks from database every 30 seconds
+  setInterval(async () => {
+    await Promise.all([
+      loadPTORequests(),
+      loadApprovedPTO(),
+      loadBreaksForAlarms()
+    ]);
+    renderCalendar();
+    if (currentUser === 'June') {
+      renderNotifications();
+    }
+    renderUserNotifications();
+  }, 30000); // 30 seconds
+  
+  // Request notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Store breaks data for alarm checking
+let breaksData = [];
+
+// Load breaks from database for alarm checking
+async function loadBreaksForAlarms() {
+  try {
+    const response = await fetch('tables/breaks?limit=1000');
+    if (!response.ok) throw new Error('Failed to load breaks');
+    const data = await response.json();
+    breaksData = data.data || [];
+    console.log('✅ Loaded breaks for alarms:', breaksData.length);
+  } catch (error) {
+    console.error('Error loading breaks:', error);
+    // Fallback to localStorage
+    breaksData = JSON.parse(localStorage.getItem('schedules') || '[]');
+  }
+}
+
+// Break alarm functions
+function checkBreakAlarms() {
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  
+  const todayBreaks = breaksData.filter(s => s.date === todayKey && s.name === currentUser);
+  
+  todayBreaks.forEach(breakItem => {
+    const breakStart = breakItem.startMinutes;
+    const breakEnd = breakStart + 15; // 15 minute break
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const currentSeconds = now.getSeconds();
+    
+    const alarmKey = `${breakItem.id}_start`;
+    const endAlarmKey = `${breakItem.id}_end`;
+    
+    // Start alarm (at exact start time, check within first 3 seconds for reliability)
+    if (currentMinutes === breakStart && currentSeconds <= 3 && !firedAlarms.has(alarmKey)) {
+      console.log('🔔 BREAK START ALARM TRIGGERED:', breakItem.type, 'at', breakStart, 'minutes (', now.toLocaleTimeString(), ')');
+      firedAlarms.add(alarmKey);
+      triggerBreakAlarm(breakItem, 'start');
+    }
+    
+    // End alarm (30 seconds before break ends)
+    // For a 15-minute break, this is at 14:30 (14 minutes 30 seconds after start)
+    const endWarningMinutes = breakEnd - 1; // 1 minute before end
+    const endWarningSeconds = 30; // At 30 seconds
+    
+    // EXPANDED WINDOW: Check if we're within a 5-second window (seconds 28-33)
+    // This ensures we don't miss it if the tab was throttled
+    const isInEndWindow = currentMinutes === endWarningMinutes && 
+                         currentSeconds >= (endWarningSeconds - 2) && 
+                         currentSeconds <= (endWarningSeconds + 3);
+    
+    if (isInEndWindow && !firedEndAlarms.has(endAlarmKey)) {
+      console.log('⏰ BREAK END ALARM TRIGGERED:', breakItem.type, 'Break ends at', breakEnd, 'min. Current:', currentMinutes, 'min', currentSeconds, 'sec (', now.toLocaleTimeString(), ')');
+      firedEndAlarms.add(endAlarmKey);
+      triggerBreakAlarm(breakItem, 'end');
+    }
+    
+    // DEBUG: Log when we're close to end alarm time
+    if (currentMinutes === endWarningMinutes && currentSeconds >= 25 && currentSeconds <= 35) {
+      if (!firedEndAlarms.has(endAlarmKey)) {
+        console.log('⏱️ Approaching end alarm time. Current:', currentMinutes, 'min', currentSeconds, 'sec. Target:', endWarningMinutes, 'min', endWarningSeconds, 'sec. Break:', breakItem.type);
+      }
+    }
+  });
+}
+
+function triggerBreakAlarm(breakItem, type) {
+  const isStart = type === 'start';
+  const title = isStart ? '🔔 Break Time!' : '⏰ Break Ending Soon!';
+  const time = formatTime(breakItem.startMinutes);
+  const message = isStart 
+    ? `Your ${breakItem.type} starts now (${time})`
+    : `Your break ends in 30 seconds! (${time})`;
+  
+  // Force focus to ensure alarm is noticed (helps with background tabs)
+  if (document.hidden) {
+    console.log('Tab is hidden - alarm triggered');
+  }
+  
+  // Show alarm modal
+  document.getElementById('alarm-title').textContent = title;
+  document.getElementById('alarm-message').textContent = message;
+  document.getElementById('alarm-modal').classList.add('open');
+  
+  // Start continuous alarm sound (with background tab fix)
+  startContinuousAlarm();
+  
+  // Show browser notification (critical for background tabs)
+  showWindowsNotification(title, message);
+  
+  // Play backup HTML5 audio for background tabs
+  playBackupAlarmSound();
+}
+
+function formatTime(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+  return `${displayHours}:${String(mins).padStart(2, '0')} ${period}`;
+}
+
+function startContinuousAlarm() {
+  // Resume audio context if suspended (fixes background tab issue)
+  if (!alarmAudioContext) {
+    alarmAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  
+  // CRITICAL FIX: Force audio context to resume in background tabs
+  // This must be synchronous and repeated to overcome browser throttling
+  const forceAudioResume = () => {
+    if (alarmAudioContext.state === 'suspended') {
+      alarmAudioContext.resume().then(() => {
+        console.log('Audio context resumed for alarm');
+      }).catch(err => {
+        console.warn('Audio resume failed:', err);
+      });
+    }
+  };
+  
+  // Resume immediately
+  forceAudioResume();
+  
+  // Try to bring window to front (helps with background tabs)
+  try {
+    window.focus();
+    if (window.parent && window.parent !== window) {
+      window.parent.focus();
+    }
+  } catch(e) {
+    console.log('Could not focus window:', e);
+  }
+  
+  alarmGainNode = alarmAudioContext.createGain();
+  alarmGainNode.connect(alarmAudioContext.destination);
+  alarmGainNode.gain.value = 0.7; // Increased volume
+  
+  let isHighTone = true;
+  alarmInterval = setInterval(() => {
+    // Resume context before EVERY tone (critical for background tabs)
+    forceAudioResume();
+    
+    // Create fresh oscillator for each beep (more reliable in background)
+    alarmOscillator = alarmAudioContext.createOscillator();
+    alarmOscillator.connect(alarmGainNode);
+    alarmOscillator.type = 'square'; // Changed to square for louder sound
+    alarmOscillator.frequency.value = isHighTone ? 1200 : 900; // Higher frequencies
+    alarmOscillator.start(alarmAudioContext.currentTime);
+    alarmOscillator.stop(alarmAudioContext.currentTime + 0.3); // Longer beep
+    isHighTone = !isHighTone;
+  }, 400); // Faster interval for more attention
+}
+
+function stopAlarmSound() {
+  if (alarmInterval) {
+    clearInterval(alarmInterval);
+    alarmInterval = null;
+  }
+  if (alarmOscillator) {
+    alarmOscillator.stop();
+    alarmOscillator = null;
+  }
+  if (alarmGainNode) {
+    alarmGainNode.gain.exponentialRampToValueAtTime(0.01, alarmAudioContext.currentTime + 0.3);
+  }
+}
+
+function dismissAlarm() {
+  stopAlarmSound();
+  document.getElementById('alarm-modal').classList.remove('open');
+}
+
+function showWindowsNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const notification = new Notification(title, {
+      body: body,
+      icon: USER_IMAGES[currentUser],
+      badge: USER_IMAGES[currentUser],
+      requireInteraction: true, // Keeps notification visible
+      tag: 'break-alarm', // Replaces previous notifications
+      vibrate: [200, 100, 200] // Vibration pattern for mobile
+    });
+    
+    // Click notification to focus window
+    notification.onclick = function() {
+      window.focus();
+      notification.close();
+    };
+  }
+}
+
+// Backup alarm sound using HTML5 Audio (works better in background)
+function playBackupAlarmSound() {
+  // Create multiple audio elements for redundancy
+  const audioUrls = [
+    'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS67OmjTQ0MUKXi8LZjHAU5ktbx0H0xBSl+zO/giz0KElyx6OyrYBoGPJPY8'
+  ];
+  
+  audioUrls.forEach(src => {
+    const audio = new Audio();
+    audio.src = src;
+    audio.volume = 0.8;
+    audio.loop = true; // Loop for continuous sound
+    
+    // Aggressive play attempts
+    const attemptPlay = () => {
+      audio.play().then(() => {
+        console.log('Backup alarm playing');
+        // Stop after 5 seconds
+        setTimeout(() => audio.pause(), 5000);
+      }).catch(err => {
+        console.log('Backup audio play failed:', err);
+        // Retry after short delay
+        setTimeout(attemptPlay, 500);
+      });
+    };
+    
+    // Start playing immediately
+    attemptPlay();
+    
+    // Try to resume playback every second for 5 seconds
+    let retryCount = 0;
+    const retryInterval = setInterval(() => {
+      if (audio.paused && retryCount < 5) {
+        attemptPlay();
+        retryCount++;
+      } else {
+        clearInterval(retryInterval);
+      }
+    }, 1000);
+  });
+}
+
+// PTO Tracker functions
+function renderCalendar() {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const monthName = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  
+  document.getElementById('month-display').textContent = monthName;
+  
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const prevLastDay = new Date(year, month, 0);
+  const firstDayOfWeek = firstDay.getDay();
+  const lastDate = lastDay.getDate();
+  const prevLastDate = prevLastDay.getDate();
+  
+  let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day =>
+    `<div class="calendar-header">${day}</div>`
+  ).join('');
+  
+  // Previous month days
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    html += `<div class="calendar-day other-month"><div class="day-number">${prevLastDate - i}</div></div>`;
+  }
+  
+  // Current month days
+  for (let day = 1; day <= lastDate; day++) {
+    const date = new Date(year, month, day);
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayOfWeek = date.getDay();
+    
+    html += `<div class="calendar-day" onclick="clickDay('${dateStr}')">
+      <div class="day-number">${day}</div>
+      <div class="staff-list">`;
+    
+    // Show all staff members
+    const allStaff = ['June', 'Mary', 'Angel', 'Jay', 'Charist', 'Noel', 'Drich'];
+    allStaff.forEach(staff => {
+      const status = getStaffStatus(staff, dateStr, dayOfWeek);
+      const pending = hasPendingRequest(staff, dateStr);
+      const star = pending ? ' ⭐' : '';
+      const tooltip = pending ? ' title="Pending PTO approval"' : '';
+      html += `<div class="staff-item ${status}"${tooltip}>${staff}${star}</div>`;
+    });
+    
+    html += `</div></div>`;
+  }
+  
+  // Next month days
+  const totalCells = Math.ceil((firstDayOfWeek + lastDate) / 7) * 7;
+  const nextDays = totalCells - (firstDayOfWeek + lastDate);
+  for (let i = 1; i <= nextDays; i++) {
+    html += `<div class="calendar-day other-month"><div class="day-number">${i}</div></div>`;
+  }
+  
+  document.getElementById('calendar-grid').innerHTML = html;
+}
+
+function getStaffStatus(staff, dateStr, dayOfWeek) {
+  // Check if PTO approved
+  const pto = approvedPTO.find(p => p.date === dateStr && p.user === staff);
+  if (pto) return 'approved-pto';
+  
+  const schedule = workSchedule[staff];
+  if (!schedule) return 'rest-day';
+  
+  // Check exceptions
+  const exception = schedule.exceptions.find(e => e.date === dateStr);
+  if (exception) {
+    return exception.type === 'PTO' ? 'approved-pto' : 'rest-day';
+  }
+  
+  // Check regular work days
+  return schedule.workDays.includes(dayOfWeek) ? 'on-duty' : 'rest-day';
+}
+
+function hasPendingRequest(staff, dateStr) {
+  return ptoRequests.some(req => req.user === staff && req.date === dateStr && req.status === 'pending');
+}
+
+function clickDay(dateStr) {
+  // If it's June and there is an approved PTO on this date, show retraction modal
+  if (currentUser === 'June') {
+    const pto = approvedPTO.find(p => p.date === dateStr);
+    if (pto) {
+      showRetractionModal(dateStr);
+      return;
+    }
+  }
+  // For all other cases (including June on non-PTO days), open the request modal
+  openRequestModal(dateStr);
+}
+
+function previousMonth() {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+  renderCalendar();
+}
+
+function nextMonth() {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+  renderCalendar();
+}
+
+async function submitPTORequest(date, reason) {
+  // date and reason are passed as parameters; no need to read from input elements
+  if (!date || !reason) {
+    showToast('error', 'Missing information');
+    return;
+  }
+
+  // Auto-approve for June
+  if (currentUser === 'June') {
+    const pto = {
+      id: Date.now().toString(),
+      date: date,
+      user: currentUser,
+      reason: reason,
+      approvedBy: 'Self',
+      approvedAt: new Date().toISOString()
+    };
+    approvedPTO.push(pto);
+    try {
+      await saveApprovedPTO(pto);
+      await loadApprovedPTO();
+    } catch (error) {
+      console.error('Failed to save PTO:', error);
+    }
+    showToast('success', 'PTO auto-approved!');
+    renderCalendar();
+    return;
+  }
+
+  // For other users, create a pending request
+  const request = {
+    id: Date.now().toString(),
+    user: currentUser,
+    date: date,
+    reason: reason,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    approvedAt: '',
+    declinedAt: '',
+    declineReason: ''
+  };
+
+  ptoRequests.push(request);
+  try {
+    await savePTORequest(request);
+    await loadPTORequests();
+    showToast('success', 'Request submitted to June for approval');
+  } catch (error) {
+    console.error('Failed to save request:', error);
+    showToast('error', 'Failed to submit request. Please try again.');
+  }
+
+  renderCalendar();
+  
+  // If June is viewing, refresh her notifications list
+  if (currentUser === 'June') {
+    renderNotifications();
+  }
+}
+
+function renderNotifications() {
+  console.log('📋 renderNotifications called. Total requests:', ptoRequests.length);
+  const pending = ptoRequests.filter(r => r.status === 'pending');
+  console.log('📋 Pending requests:', pending.length, pending);
+  
+  const container = document.getElementById('notifications-list');
+  if (!container) {
+    console.error('❌ notifications-list element not found!');
+    return;
+  }
+  
+  if (pending.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>No pending requests</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = pending.map(request => `
+    <div class="notification-card">
+      <div class="notif-user">${request.user}</div>
+      <div class="notif-date">${new Date(request.date).toLocaleDateString()}</div>
+      <div class="notif-reason">"${request.reason}"</div>
+      <div class="notif-actions">
+        <button class="btn btn-success" onclick="approveRequest('${request.id}')">Approve</button>
+        <button class="btn btn-danger" onclick="declineRequest('${request.id}')">Decline</button>
+      </div>
+    </div>
+  `).join('');
+  console.log('✅ Rendered', pending.length, 'pending requests');
+}
+
+function approveRequest(id) {
+  const request = ptoRequests.find(r => r.id === id);
+  if (!request) return;
+  
+  // Check if password is set
+  if (!junePassword) {
+    pendingAction = { type: 'approve', id: id };
+    document.getElementById('password-modal-title').textContent = 'Set Admin Password';
+    openPasswordModal();
+  } else {
+    pendingAction = { type: 'approve', id: id };
+    document.getElementById('password-modal-title').textContent = 'Enter Admin Password';
+    openPasswordModal();
+  }
+}
+
+function declineRequest(id) {
+  selectedDate = id;
+  document.getElementById('decline-modal').classList.add('open');
+}
+
+async function confirmDecline() {
+  const reason = document.getElementById('decline-reason').value.trim();
+  
+  if (!reason) {
+    showToast('error', 'Decline reason is required');
+    return;
+  }
+  
+  const request = ptoRequests.find(r => r.id === selectedDate);
+  if (!request) return;
+  
+  // Update request status
+  const index = ptoRequests.findIndex(r => r.id === selectedDate);
+  if (index !== -1) {
+    ptoRequests[index].status = 'declined';
+    ptoRequests[index].declineReason = reason;
+    ptoRequests[index].declinedAt = new Date().toISOString();
+    
+    // Update in database
+    try {
+      await updatePTORequest(selectedDate, {
+        status: 'declined',
+        declineReason: reason,
+        declinedAt: new Date().toISOString()
+      });
+      await loadPTORequests();
+    } catch (error) {
+      console.error('Failed to update decline:', error);
+    }
+    
+    // Send notification to user
+    sendUserNotification(request.user, {
+      type: 'declined',
+      date: request.date,
+      reason: reason,
+      timestamp: new Date().toISOString()
+    });
+    
+    showToast('success', `Request declined. ${request.user} has been notified.`);
+    closeDeclineModal();
+    renderNotifications();
+  }
+}
+
+function openPasswordModal() {
+  document.getElementById('password-modal').classList.add('open');
+  document.getElementById('password-input').value = '';
+}
+
+function closePasswordModal() {
+  document.getElementById('password-modal').classList.remove('open');
+  pendingAction = null;
+}
+
+function submitPassword() {
+  const password = document.getElementById('password-input').value;
+  
+  if (!junePassword) {
+    if (!password) {
+      showToast('error', 'Please enter a password');
+      return;
+    }
+    junePassword = password;
+    localStorage.setItem('junePassword', password);
+    showToast('success', 'Admin password set!');
+    
+    // Store pending action before closing modal
+    const actionToExecute = pendingAction;
+    closePasswordModal();
+    
+    // Execute pending action after setting password
+    if (actionToExecute && actionToExecute.type === 'approve') {
+      console.log('Executing approval after password set:', actionToExecute.id);
+      executeApproval(actionToExecute.id);
+    }
+  } else {
+    if (password !== junePassword) {
+      showToast('error', 'Incorrect password');
+      return;
+    }
+    
+    // Store pending action before closing modal
+    const actionToExecute = pendingAction;
+    closePasswordModal();
+    
+    // Execute pending action after password verification
+    if (actionToExecute && actionToExecute.type === 'approve') {
+      console.log('Executing approval after password verified:', actionToExecute.id);
+      executeApproval(actionToExecute.id);
+    }
+  }
+}
+
+async function executeApproval(id) {
+  console.log('executeApproval called with id:', id);
+  
+  const request = ptoRequests.find(r => r.id === id);
+  if (!request) {
+    console.error('Request not found:', id);
+    showToast('error', 'Request not found');
+    return;
+  }
+  
+  console.log('Found request:', request);
+  
+  // Check if already approved
+  const alreadyApproved = approvedPTO.find(p => p.date === request.date && p.user === request.user);
+  if (alreadyApproved) {
+    showToast('error', 'PTO already approved for this date');
+    renderNotifications();
+    return;
+  }
+  
+  // Add to approved PTO
+  const pto = {
+    id: Date.now().toString(),
+    date: request.date,
+    user: request.user,
+    reason: request.reason,
+    approvedBy: currentUser,
+    approvedAt: new Date().toISOString()
+  };
+  
+  approvedPTO.push(pto);
+  
+  // Update request status
+  const index = ptoRequests.findIndex(r => r.id === id);
+  if (index !== -1) {
+    ptoRequests[index].status = 'approved';
+    ptoRequests[index].approvedAt = new Date().toISOString();
+  }
+  
+  // Save to database with error handling
+  try {
+    await saveApprovedPTO(pto);
+    await updatePTORequest(id, { 
+      status: 'approved',
+      approvedAt: new Date().toISOString()
+    });
+    await Promise.all([loadPTORequests(), loadApprovedPTO()]);
+    console.log('Saved to database successfully');
+  } catch (error) {
+    console.error('Error saving to localStorage:', error);
+    showToast('error', 'Failed to save approval');
+    return;
+  }
+  
+  // Send notification to user
+  sendUserNotification(request.user, {
+    type: 'approved',
+    date: request.date,
+    timestamp: new Date().toISOString()
+  });
+  
+  console.log('Approval complete - showing toast and re-rendering');
+  showToast('success', `Approved! ${request.user} has been notified.`);
+  
+  // Force re-render
+  renderNotifications();
+  renderCalendar();
+  
+  // Clear pending action
+  pendingAction = null;
+}
+
+function sendUserNotification(userName, notificationData) {
+  const userNotifs = JSON.parse(localStorage.getItem('userNotifications_' + userName) || '[]');
+  userNotifs.push({
+    id: Date.now().toString(),
+    ...notificationData,
+    read: false
+  });
+  localStorage.setItem('userNotifications_' + userName, JSON.stringify(userNotifs));
+}
+
+function renderUserNotifications() {
+  const notifs = JSON.parse(localStorage.getItem('userNotifications_' + currentUser) || '[]');
+  const unreadNotifs = notifs.filter(n => !n.read);
+  
+  if (unreadNotifs.length === 0) {
+    document.getElementById('user-notifications-card').style.display = 'none';
+    return;
+  }
+  
+  document.getElementById('user-notifications-card').style.display = 'block';
+  
+  const container = document.getElementById('user-notifications-list');
+  container.innerHTML = unreadNotifs.map(notif => {
+    if (notif.type === 'approved') {
+      return `
+        <div class="user-notification-card">
+          <div class="notif-header">
+            <div class="notif-icon">✅</div>
+            <div class="notif-title">PTO Request Approved!</div>
+          </div>
+          <div class="notif-content">
+            <p>Your PTO request for <strong>${new Date(notif.date).toLocaleDateString()}</strong> has been approved by June.</p>
+            <div class="notif-cta">
+              📄 You may now file your PTO leave in BambooHR
+            </div>
+          </div>
+          <div class="notif-dismiss">
+            <button class="btn-notif-dismiss" onclick="dismissNotification('${notif.id}')">Dismiss</button>
+          </div>
+        </div>
+      `;
+    } else if (notif.type === 'declined') {
+      return `
+        <div class="user-notification-card" style="border-color: var(--danger);">
+          <div class="notif-header">
+            <div class="notif-icon">❌</div>
+            <div class="notif-title">PTO Request Declined</div>
+          </div>
+          <div class="notif-content">
+            <p>Your PTO request for <strong>${new Date(notif.date).toLocaleDateString()}</strong> has been declined.</p>
+            <div class="notif-reason-label">Reason for Denial:</div>
+            <div class="notif-reason-text">${notif.reason}</div>
+          </div>
+          <div class="notif-dismiss">
+            <button class="btn-notif-dismiss" onclick="dismissNotification('${notif.id}')">Dismiss</button>
+          </div>
+        </div>
+      `;
+    } else if (notif.type === 'retracted') {
+      return `
+        <div class="user-notification-card" style="border-color: var(--warn);">
+          <div class="notif-header">
+            <div class="notif-icon">⚠️</div>
+            <div class="notif-title">PTO Retracted</div>
+          </div>
+          <div class="notif-content">
+            <p>Your approved PTO for <strong>${new Date(notif.date).toLocaleDateString()}</strong> has been retracted by June.</p>
+            <div class="notif-reason-label">Reason for Retraction:</div>
+            <div class="notif-reason-text">${notif.reason}</div>
+          </div>
+          <div class="notif-dismiss">
+            <button class="btn-notif-dismiss" onclick="dismissNotification('${notif.id}')">Dismiss</button>
+          </div>
+        </div>
+      `;
+    }
+    return '';
+  }).join('');
+}
+
+function dismissNotification(notifId) {
+  const notifs = JSON.parse(localStorage.getItem('userNotifications_' + currentUser) || '[]');
+  const index = notifs.findIndex(n => n.id === notifId);
+  if (index !== -1) {
+    notifs[index].read = true;
+    localStorage.setItem('userNotifications_' + currentUser, JSON.stringify(notifs));
+    renderUserNotifications();
+  }
+}
+
+function closeDeclineModal() {
+  document.getElementById('decline-modal').classList.remove('open');
+  document.getElementById('decline-reason').value = '';
+  selectedDate = null;
+}
+
+function showRetractionModal(dateStr) {
+  selectedDate = dateStr;
+  const pto = approvedPTO.find(p => p.date === dateStr);
+  if (!pto) return;
+  
+  const isOwnPTO = pto.user === currentUser;
+  const message = isOwnPTO 
+    ? `Retract your PTO for ${new Date(dateStr).toLocaleDateString()}?`
+    : `Retract ${pto.user}'s PTO for ${new Date(dateStr).toLocaleDateString()}?`;
+  
+  document.getElementById('retraction-message').textContent = message;
+  
+  if (!isOwnPTO) {
+    document.getElementById('retraction-password-group').style.display = 'block';
+    document.getElementById('retraction-reason-group').style.display = 'block';
+  } else {
+    document.getElementById('retraction-password-group').style.display = 'none';
+    document.getElementById('retraction-reason-group').style.display = 'none';
+  }
+  
+  document.getElementById('retraction-modal').classList.add('open');
+}
+
+function closeRetractionModal() {
+  document.getElementById('retraction-modal').classList.remove('open');
+  document.getElementById('retraction-password').value = '';
+  document.getElementById('retraction-reason').value = '';
+  selectedDate = null;
+}
+
+async function confirmRetraction() {
+  const pto = approvedPTO.find(p => p.date === selectedDate);
+  if (!pto) return;
+
+  const isOwnPTO = pto.user === currentUser;
+  let reason = '';
+
+  // Admin retracting someone else's PTO
+  if (!isOwnPTO) {
+    const password = document.getElementById('retraction-password').value;
+    reason = document.getElementById('retraction-reason').value.trim();
+
+    if (password !== junePassword) {
+      showToast('error', 'Incorrect password');
+      return;
+    }
+    if (!reason) {
+      showToast('error', 'Retraction reason is required');
+      return;
+    }
+  }
+
+  // Delete the record from the database
+  try {
+    await deleteApprovedPTO(pto.date, pto.user);
+    // Reload fresh data from database
+    await loadApprovedPTO();
+    showToast('success', 'PTO retracted - slot reverted to original color');
+    
+    // Send notification to the user (only if it's not their own PTO)
+    if (!isOwnPTO) {
+      sendUserNotification(pto.user, {
+        type: 'retracted',
+        date: pto.date,
+        reason: reason,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    closeRetractionModal();
+    renderCalendar();
+  } catch (error) {
+    console.error('Failed to retract PTO:', error);
+    showToast('error', 'Could not retract PTO. Please try again.');
+  }
+}
+
+function showToast(type, message) {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 4000);
+}
+
+// Initialize on load
+init();
+</script>
+
+</body>
+</html>
